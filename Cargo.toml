@@ -1,0 +1,17 @@
+[package]
+name = "WebApi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-std = "1.13.0"
+log = "0.4"   # For logging
+flexi_logger = "0.29.3"  # For saving logs to a file
+config = "0.14.0" # For managing configuration from various sources
+toml = "0.8.19" # For parsing TOML files
+futures = "0.3.31"
+uuid = { version = "1.11.0", features = ["v4"] }
+
