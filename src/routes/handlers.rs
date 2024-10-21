@@ -2,9 +2,10 @@ use std::thread;
 use async_std::io::{ReadExt, WriteExt};
 use async_std::net::TcpStream;
 
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder, Error};
 use async_std::fs::File;
 use async_std::prelude::*;
+use futures::TryFutureExt;
 use crate::models::*;
 use crate::redis_server::RedisClient;
 
@@ -102,16 +103,16 @@ pub async fn fetch_from_java() -> impl Responder {
 pub async fn get_item_from_redis(
     path: web::Path<String>,
     redis_client: web::Data<RedisClient>,
-) -> impl Responder {
+) -> Result<HttpResponse, Error> {
     let key = path.into_inner();
-    match redis_client.get_item(&key).await {
-        Ok(value) => HttpResponse::Ok().json(RedisItem {
-            key: key,
-            value: value,
-        }),
-        Err(err) => HttpResponse::InternalServerError().body(format!("Error: {}", err)),
-    }
+    let value = redis_client.get_item(&key).await.map_err(|e| {
+        eprintln!("Error retrieving value: {}", e);
+        actix_web::error::ErrorInternalServerError("Internal Server Error")
+    })?;
+    println!("Successfully retrieved value");
+    Ok(HttpResponse::Ok().json(RedisItem { key, value }))
 }
+
 
 pub async fn set_item_in_redis(
     item: web::Json<RedisItem>,
@@ -123,7 +124,6 @@ pub async fn set_item_in_redis(
         Err(err) => HttpResponse::InternalServerError().body(format!("Error: {}", err)),
     }
 }
-
 
 
 // THREADS
@@ -142,7 +142,6 @@ fn multiply(a: i32, b: i32, c: i32) -> i32 {
 
 
 pub async fn compute_operations(a: i32, b: i32, c: i32) -> impl Responder {
-
     let handle_add = {
         let (a, b, c) = (a, b, c);
         thread::spawn(move || add(a, b, c))
