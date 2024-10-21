@@ -2,12 +2,8 @@ use actix_web::{web, App, HttpServer};
 use std::io;
 use log::{error, info}; // logging macros
 use flexi_logger::{Duplicate, FileSpec, Logger, WriteMode};
+use WebApi::{config, constants, routes, redis_server::RedisClient};
 
-
-mod routes;
-mod models;
-mod config;
-mod constants;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
@@ -21,6 +17,13 @@ async fn main() -> io::Result<()> {
         .start()
         .unwrap();
 
+    let redis_client = RedisClient::new("redis://127.0.0.1:6379/")
+        .await
+        .expect("Failed to create Redis client");
+
+    // Wrap the RedisClient in web::Data for shared access
+    let redis_data = web::Data::new(redis_client);
+
 
     let server_config = config::AppConfig::from_config_file(constants::CONFIG_FILE)
         .map_err(|e| {
@@ -32,12 +35,17 @@ async fn main() -> io::Result<()> {
 
     let ip = server_config.server.ip;
     let port = server_config.server.port;
-    let connection_str = format!("{}:{}",ip, port);
+    let connection_str = format!("{}:{}", ip, port);
 
     // Log server start info
     info!("Starting HTTP server at {}",connection_str);
 
-    let server = HttpServer::new(|| App::new().configure(routes::init_routes))
+    // Add the `move` keyword here
+    let server = HttpServer::new(move || {
+        App::new()
+            .app_data(redis_data.clone())
+            .configure(routes::init_routes)
+    })
         .workers(4)
         .bind(&connection_str)
         .map_err(|e| {
@@ -49,8 +57,7 @@ async fn main() -> io::Result<()> {
 
     server.run().await
         .map_err(|e| {
-        error!("Error running the server: {}", e);
-        e
-    })
-
+            error!("Error running the server: {}", e);
+            e
+        })
 }

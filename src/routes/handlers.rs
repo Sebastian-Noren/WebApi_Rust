@@ -5,7 +5,9 @@ use async_std::net::TcpStream;
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use async_std::fs::File;
 use async_std::prelude::*;
-use crate::models::Item;
+use crate::models::*;
+use crate::redis_server::RedisClient;
+
 
 pub async fn get_items() -> impl Responder {
     println!("Request come");
@@ -93,6 +95,35 @@ pub async fn fetch_from_java() -> impl Responder {
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed to connect: {}", e)),
     }
 }
+
+
+// handlers.rs
+
+pub async fn get_item_from_redis(
+    path: web::Path<String>,
+    redis_client: web::Data<RedisClient>,
+) -> impl Responder {
+    let key = path.into_inner();
+    match redis_client.get_item(&key).await {
+        Ok(value) => HttpResponse::Ok().json(RedisItem {
+            key: key,
+            value: value,
+        }),
+        Err(err) => HttpResponse::InternalServerError().body(format!("Error: {}", err)),
+    }
+}
+
+pub async fn set_item_in_redis(
+    item: web::Json<RedisItem>,
+    redis_client: web::Data<RedisClient>,
+) -> impl Responder {
+    let RedisItem { key, value } = item.into_inner();
+    match redis_client.set_item(&key, &value).await {
+        Ok(_) => HttpResponse::Ok().body("Value set successfully"),
+        Err(err) => HttpResponse::InternalServerError().body(format!("Error: {}", err)),
+    }
+}
+
 
 
 // THREADS

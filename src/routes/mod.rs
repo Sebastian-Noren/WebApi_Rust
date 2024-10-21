@@ -1,10 +1,14 @@
 mod handlers;
 
 use actix_web::web;
-use handlers::{get_items, get_item, create_item, update_item, delete_item, read_file,get_file_by_name,print_ids,fetch_from_java};
+use handlers::*;
 
 
-pub fn init_routes(cfg: &mut web::ServiceConfig) {
+
+
+pub  fn init_routes(cfg: &mut web::ServiceConfig) {
+
+
     cfg.service(
         web::scope("/items")
             .service(
@@ -18,6 +22,18 @@ pub fn init_routes(cfg: &mut web::ServiceConfig) {
                     .route(web::get().to(get_item))
                     .route(web::put().to(update_item))
                     .route(web::delete().to(delete_item)),
+            )
+    );
+
+    cfg.service(
+        web::scope("/redis")
+            .service(
+                web::resource("")
+                    .route(web::post().to(set_item_in_redis)), // New POST route
+            )
+            .service(
+                web::resource("/{key}")
+                    .route(web::get().to(get_item_from_redis))
             ),
     );
 
@@ -33,6 +49,7 @@ pub fn init_routes(cfg: &mut web::ServiceConfig) {
                     .route(web::get().to(get_file_by_name)),
             ),
     );
+
 
     cfg.service(print_ids);
 
