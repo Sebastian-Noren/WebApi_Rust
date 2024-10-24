@@ -50,10 +50,20 @@ pub  fn init_routes(cfg: &mut web::ServiceConfig) {
             ),
     );
 
+    cfg.service(
+        web::scope("/grpc")
+            .service(
+                web::resource("/{id}")
+                    .route(web::get().to(get_grpc_book))
+            )
+    );
+
 
     cfg.service(print_ids);
 
     // Route for /java
     cfg.route("/java", web::get().to(fetch_from_java));
+
+
 }
 

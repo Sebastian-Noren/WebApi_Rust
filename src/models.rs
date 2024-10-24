@@ -12,15 +12,25 @@ pub struct RedisItem {
    pub value: String,
 }
 
+
+// Define a local Book struct for JSON serialization
+#[derive(Debug,Serialize, Deserialize)]
+pub struct Book {
+    pub id: i32,
+    pub title: String,
+    pub author: String,
+    pub pages: i32,
+}
+
 #[derive(Debug, Serialize)]
-pub struct Book{
+pub struct BookA{
     pub title: String,
     pub author: String,
     pub pages: u32,
     pub description: Option<String>
 }
 
-impl Default for Book{
+impl Default for BookA{
     fn default() -> Self {
         Self{
             title: "Untitled".to_string(),

@@ -10,6 +10,16 @@ use crate::models::*;
 use crate::redis_server::RedisClient;
 
 
+// GRPC
+pub mod book {
+    tonic::include_proto!("book"); // The string specified here must match the proto package name
+}
+
+use book::book_service_client::BookServiceClient;
+use book::{Book as GrpcBook, GetBookRequest};
+
+
+
 pub async fn get_items() -> impl Responder {
     println!("Request come");
     let items = vec![
@@ -95,6 +105,34 @@ pub async fn fetch_from_java() -> impl Responder {
         }
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed to connect: {}", e)),
     }
+
+
+}
+
+pub async fn get_grpc_book(path: web::Path<i32>) -> impl Responder{
+    let id: i32 = path.into_inner();
+    match get_book_from_grpc(id).await {
+        Ok(book) => HttpResponse::Ok().json(book),
+        Err(e) => {
+            eprintln!("Error fetching book from Grpc {:?}", e);
+            HttpResponse::InternalServerError().body("Error fetching book")
+        }
+    }
+}
+
+async fn get_book_from_grpc(id: i32) -> Result<Book, Box<dyn std::error::Error>>{
+    let x = 10;
+    let mut client = BookServiceClient::connect("http://127.0.0.1:50051")
+        .await?;
+    let request = tonic::Request::new(GetBookRequest{id});
+    let response = client.get_book(request).await?;
+    let grpc_book: GrpcBook = response.into_inner();
+    Ok(Book{
+        id: grpc_book.id,
+        title: grpc_book.title,
+        author: grpc_book.author,
+        pages: grpc_book.pages,
+    })
 }
 
 

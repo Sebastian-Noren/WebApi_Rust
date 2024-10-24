@@ -4,7 +4,7 @@ use std::ptr::null;
 use log::{error, info}; // logging macros
 use flexi_logger::{Duplicate, FileSpec, Logger, WriteMode};
 use WebApi::{config, constants, routes, redis_server::RedisClient, models};
-use WebApi::models::Book;
+use WebApi::models::BookA;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
@@ -25,7 +25,9 @@ async fn main() -> io::Result<()> {
     // Wrap the RedisClient in web::Data for shared access
     let redis_data = web::Data::new(redis_client);
 
-    let book = Book{
+
+
+    let book = BookA{
         title: "Land before time".to_string(),
         author: "Sebastian N".to_string(),
         pages: 100,
